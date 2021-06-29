@@ -9,7 +9,7 @@ const horaFor=document.querySelector('#hora');
 const direccionFor=document.querySelector('#direccion');
 const serviciosFor=document.querySelector('#servicios');
 const expresionregular=/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-let editando;
+let editando=false;
 
 
 //interfaz grafica
@@ -39,7 +39,7 @@ class informe{
     {
         //map porque recorre el arreglo y me crea uno nuevo
         this.citas=this.citas.map(informeeditar=>informeeditar.id===informeactualizadao.id ? informeactualizadao : informeeditar) //si los ids coinciden entonces se va a reeescribir el informe de caso contrario no lo va a hacer si no s¿que se mantendra
-        
+        console.log(this.citas)
     }
    
 
@@ -85,7 +85,7 @@ class interfazusuario{
             const cursor=e.target.result
             if(cursor) //si hay un cursor
             {
-            const { identificacion,nombres,apellidos,correo,telefono,fecha,hora,direccion,servicios,id}=cursor.value;
+            const {identificacion,nombres,apellidos,correo,telefono,fecha,hora,direccion,servicios,id}=cursor.value;
             const vidiarrayinformes=document.createElement('div');
             vidiarrayinformes.classList.add('cita','p-3');
             vidiarrayinformes.dataset.id=id;
@@ -122,7 +122,7 @@ class interfazusuario{
             const btnEliminar=document.createElement('button');
             btnEliminar.classList.add('btn','btn-danger','mr-2')
             btnEliminar.innerHTML='Borrar <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>'; 
-            btnEliminar.onclick=() => eliminarinforme(id); // el id del structuring
+            btnEliminar.onclick=() => eliminarinforme(Number(id)); // el id del structuring
 
             //se añade al html o el boton de editar
 
@@ -219,7 +219,7 @@ function datosInfromes(e)
 //llenar el objeto
 informeOBJETO[e.target.name]=e.target.value;
 
-console.log(informeOBJETO)
+
 
 }
 
@@ -246,14 +246,16 @@ function nuevoinforme(e)
                             //instanciainterfaz.ImprimirAlerta('Edicion Guadada correctamente','correctoss');
                     //pasar el objeto  al informe
 
-         administradorinforme.editarinforme({...informeOBJETO})
+                    administradorinforme.editarinforme({...informeOBJETO}); //solucion pegamos la copia
+    
 
-       //insertra datos en el indexedBD
-       let transactions=DB_variableglobal.transaction(['informestigo'],'readwrite');
-       //habilita el objecstore
-       let objectStore=transactions.objectStore('informestigo');
-        let resultadoedicion=objectStore.add(informeOBJETO);
-        console.log(resultadoedicion)
+                    //insertra datos en el indexedBD
+                    const transactions=DB_variableglobal.transaction(['informestigo'],'readwrite');
+                    //habilita el objecstore
+                    const objectStore=transactions.objectStore('informestigo');
+                    //insertando objeto en la base de datos
+                    objectStore.put(informeOBJETO);
+        
         transactions.oncomplete=()=>{
             console.log('se edito correctamente')
             formularioF.querySelector('button[type="submit"]').textContent='Crear informe';
@@ -341,18 +343,20 @@ function eliminarinforme(id)
    //insertando objeto en la base de datos
    objectStore.delete(id);
    transaction.oncomplete=() =>{
-    console.log(`cita ${id} eliminada...`)
-    instanciainterfaz.Imprimirinformes();
+    console.log(id)
+    console.log('eliminacion correct')
+    instanciainterfaz.Imprimirinformes('Se elimino correctamente','correcto');
 
    }
    transaction.onerror=() =>{
     console.log(`cita ${id} no eliminada...`)  
+    //mostrar mensaje
+    instanciainterfaz.ImprimirAlerta('no se elimino!!!','error');
     }
 
-    //mostrar mensaje
-    instanciainterfaz.ImprimirAlerta('se elimino el informe con exito!!!','correcto');
+    
 
-    //refrescar los informes
+  
 
 }
 //carga los datos y el modo edicion
@@ -360,8 +364,7 @@ function cargaredicion(array_informes)
 {
 
 //destructuring para llenar el los inputs
-const { identificacion,nombres,apellidos,correo,telefono,fecha,hora,direccion,servicios,id}=array_informes
-
+const { identificacion,nombres,apellidos,correo,telefono,fecha,hora,direccion,servicios,id}=array_informes;
 //llenar los inputs
 identificacionFor.value=identificacion;
 nombresFor.value=nombres;
@@ -372,10 +375,7 @@ fechaFor.value=fecha;
 horaFor.value=hora;
 direccionFor.value=direccion;
 serviciosFor.value=servicios;
-//cambiar el color del boton para editar
-formularioF.querySelector('button[type="submit"]').textContent='Confirmar edicion';
-formularioF.querySelector('button[type="submit"]').classList.add('btn','btn-warning');
-editando=true;
+
 /*llenar el objeto ya que almoneto de darle al boton editar
 y despues al botonde agregar da un error (campos vacios )
 aunque tengainformacion
@@ -390,8 +390,12 @@ informeOBJETO.fecha=fecha;
 informeOBJETO.hora=hora;
 informeOBJETO.direccion=direccion;
 informeOBJETO.servicios=servicios;
-informeOBJETO.id=id;
+id.id=id;
 
+//cambiar el color del boton para editar
+formularioF.querySelector('button[type="submit"]').textContent='Confirmar edicion';
+formularioF.querySelector('button[type="submit"]').classList.add('btn','btn-warning');
+editando=true;
 }
 //funcion para la creacio de bases de datos
 function DataBase(){
@@ -420,8 +424,8 @@ function DataBase(){
         const db=e.target.result; //otra instancia de bases de datos
         //configuracion de la base de datos
         const objectStore=db.createObjectStore('informestigo',{
-            KeyPath:'id',    //llave principal
-            autoIncrement:true
+            keyPath:'id',    //llave principal
+            //autoIncrement:true
         });
         //creando las columnas
         objectStore.createIndex('identificacion','identificacion',{unique:false}); //son los mismos campos del objeto
